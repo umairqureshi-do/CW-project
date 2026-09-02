@@ -1,0 +1,196 @@
+You are a senior full-stack SaaS architect and competitive intelligence systems engineer.
+
+Your task is to design and build an MVP for a SaaS product called:
+
+"MediaIntel – Competitive Media & PR Opportunity Engine"
+
+## 🧠 Product Overview
+
+This tool helps marketing and growth teams identify:
+- Where competitors are being mentioned in top-tier media
+- Which publishers are covering them
+- Recent PR opportunities that can be used for positioning and outreach
+
+It focuses on Tier-1 and Tier-2 media publications only.
+
+## 🎯 Target Competitors (hardcoded for MVP)
+- WP Engine
+- Kinsta
+- Hostinger
+- GoDaddy
+- Bluehost
+- Pagely
+- Flywheel
+
+## 🎯 Primary User (ICP)
+- SaaS marketing teams
+- Growth marketers
+- PR & communications teams
+- Hosting / infrastructure companies (e.g., Cloudways)
+
+---
+
+## 🔥 Core Functionality
+
+### 1. Competitor Mention Tracking
+System must detect mentions of competitors in:
+- News articles
+- Blogs
+- Press releases
+- Tech publications
+
+Sources must include (but not limited to):
+- Tier 1 tech media
+- SaaS blogs
+- Hosting review sites
+- Industry publications
+
+---
+
+### 2. Time-Based Filtering
+Every mention must be categorized into:
+
+- Last 7 days
+- Last 30 days
+- Last 90 days
+
+Each mention must include:
+- Title
+- Source (publisher name)
+- URL
+- Date
+- Context snippet (1–3 lines)
+- Competitor mentioned
+
+---
+
+### 3. Media Placement Intelligence Layer
+
+For each mention, analyze:
+
+- Why was the competitor mentioned?
+- Was it:
+  - Product review
+  - Comparison article
+  - Ranking list
+  - Industry news
+  - Customer story
+  - Sponsored content
+
+Tag each accordingly.
+
+---
+
+### 4. Opportunity Detection Engine (IMPORTANT)
+
+For every competitor mention, generate:
+
+- “PR Gap Opportunity for Cloudways”
+- Suggested angle Cloudways can use
+- Suggested outreach target type (blog, journalist, affiliate site)
+
+Example output:
+"If Hostinger is featured in 'Top 10 Cheap Hosting Providers', Cloudways opportunity = premium performance-focused counter positioning"
+
+---
+
+### 5. Dashboard Requirements (MVP UI)
+
+Build a simple SaaS dashboard:
+
+- Left sidebar:
+  - Competitors list
+  - Time filters (7/30/90 days)
+
+- Main panel:
+  - Feed of mentions
+  - Each card shows:
+    - Competitor
+    - Title
+    - Publisher
+    - Date
+    - Category tag
+    - Opportunity insight
+
+- Filters:
+  - Publisher type
+  - Mention type (review, comparison, news)
+
+---
+
+## ⚙️ Technical Requirements
+
+### Frontend:
+- Next.js preferred
+- Clean SaaS dashboard UI
+- Filterable table + cards
+
+### Backend:
+- API routes to fetch and aggregate mentions
+- Data normalization layer
+
+### Data Sources (IMPORTANT)
+Use ONLY legitimate sources:
+- News APIs
+- RSS feeds
+- Public search APIs
+- Aggregated content APIs
+
+DO NOT use scraping that violates terms of service.
+
+---
+
+## 🤖 AI ANALYSIS LAYER
+
+Use Claude API to:
+
+1. Classify article type
+2. Extract competitor context
+3. Generate PR opportunity insight
+4. Summarize article relevance
+
+---
+
+## 🧠 AI Prompt Logic (must design this)
+
+You MUST design structured prompts for:
+
+### Prompt 1: Mention Classification
+- Identify if competitor is mentioned
+- Extract sentiment (positive / neutral / negative)
+- Extract context type
+
+### Prompt 2: Opportunity Generator
+- Convert mention into actionable PR insight for Cloudways
+- Suggest positioning angle
+
+---
+
+## 📦 OUTPUT REQUIRED FROM YOU
+
+1. Full system architecture
+2. Database schema (if needed)
+3. Frontend structure
+4. Backend API structure
+5. AI prompt templates
+6. Example processed output
+7. MVP build steps (7–14 day plan)
+
+---
+
+## 🚨 CONSTRAINTS
+
+- No overengineering enterprise features
+- No real-time streaming required for MVP
+- Focus on usable insights, not perfect data coverage
+- Prioritize speed of launch over completeness
+- Keep MVP lean but monetizable
+
+---
+
+## 🎯 SUCCESS DEFINITION
+
+The system is successful if it can:
+- Show competitor mentions in last 7/30/90 days
+- Identify media sources clearly
+- Generate actionable PR opportunities for Cloudways-style positioning

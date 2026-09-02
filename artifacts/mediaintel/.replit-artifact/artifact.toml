@@ -1,0 +1,31 @@
+kind = "web"
+previewPath = "/"
+title = "MediaIntel"
+version = "1.0.0"
+id = "artifacts/mediaintel"
+router = "path"
+
+[[integratedSkills]]
+name = "react-vite"
+version = "1.0.0"
+
+[[services]]
+name = "web"
+paths = [ "/" ]
+localPort = 23457
+
+[services.development]
+run = "pnpm --filter @workspace/mediaintel run dev"
+
+[services.production]
+build = [ "pnpm", "--filter", "@workspace/mediaintel", "run", "build" ]
+publicDir = "artifacts/mediaintel/dist/public"
+serve = "static"
+
+[[services.production.rewrites]]
+from = "/*"
+to = "/index.html"
+
+[services.env]
+PORT = "23457"
+BASE_PATH = "/"

@@ -1,0 +1,1484 @@
+openapi: 3.1.0
+info:
+  # Do not change the title, if the title changes, the import paths will be broken
+  title: Api
+  version: 0.1.0
+  description: MediaIntel - Competitive Media & PR Opportunity Engine API
+servers:
+  - url: /api
+    description: Base API path
+tags:
+  - name: health
+    description: Health operations
+  - name: mentions
+    description: Competitor mention operations
+  - name: competitors
+    description: Competitor management
+  - name: publishers
+    description: Publisher information
+  - name: comp-intel
+    description: Competitor internal blog intelligence
+  - name: community
+    description: Community discussion tracker (Reddit, Hacker News)
+  - name: pages
+    description: Competitor website page tracker (sitemap-based)
+paths:
+  /healthz:
+    get:
+      operationId: healthCheck
+      tags: [health]
+      summary: Health check
+      description: Returns server health status
+      responses:
+        "200":
+          description: Healthy
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/HealthStatus"
+
+  /mentions:
+    get:
+      operationId: listMentions
+      tags: [mentions]
+      summary: List competitor mentions
+      description: Returns filtered competitor mentions from media sources
+      parameters:
+        - name: competitor
+          in: query
+          schema:
+            type: string
+          description: Filter by competitor name
+        - name: timeRange
+          in: query
+          schema:
+            type: string
+            enum: [7d, 30d, 90d]
+          description: Time range filter
+        - name: mentionType
+          in: query
+          schema:
+            type: string
+            enum: [review, comparison, ranking, news, customer_story, sponsored, other]
+          description: Filter by mention type
+        - name: publisher
+          in: query
+          schema:
+            type: string
+          description: Filter by publisher name
+        - name: sentiment
+          in: query
+          schema:
+            type: string
+            enum: [positive, neutral, negative]
+          description: Filter by sentiment
+        - name: limit
+          in: query
+          schema:
+            type: integer
+            default: 50
+          description: Max results to return
+        - name: offset
+          in: query
+          schema:
+            type: integer
+            default: 0
+          description: Pagination offset
+        - name: sortBy
+          in: query
+          schema:
+            type: string
+            enum: [date, score]
+            default: date
+          description: Sort order for results
+        - name: status
+          in: query
+          schema:
+            type: string
+            enum: [unread, read, actioned]
+          description: Filter by mention status
+      responses:
+        "200":
+          description: List of mentions
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/MentionListResponse"
+
+  /mentions/{id}/status:
+    patch:
+      operationId: updateMentionStatus
+      tags: [mentions]
+      summary: Update mention status
+      description: Mark a mention as read or actioned
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/UpdateMentionStatusBody"
+      responses:
+        "200":
+          description: Updated mention
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Mention"
+        "404":
+          description: Mention not found
+
+  /mentions/stats:
+    get:
+      operationId: getMentionStats
+      tags: [mentions]
+      summary: Get mention statistics
+      description: Returns summary stats for the dashboard
+      parameters:
+        - name: timeRange
+          in: query
+          schema:
+            type: string
+            enum: [7d, 30d, 90d]
+          description: Time range filter
+        - name: competitor
+          in: query
+          schema:
+            type: string
+          description: Optional filter to brand or competitor name
+      responses:
+        "200":
+          description: Dashboard stats
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/MentionStats"
+
+  /mentions/refresh:
+    post:
+      operationId: refreshMentions
+      tags: [mentions]
+      summary: Refresh competitor mentions
+      description: Triggers a fresh fetch and AI analysis of competitor mentions from RSS feeds
+      requestBody:
+        required: false
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/RefreshMentionsBody"
+      responses:
+        "200":
+          description: Refresh result
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/RefreshResult"
+
+  /competitors:
+    get:
+      operationId: listCompetitors
+      tags: [competitors]
+      summary: List tracked competitors
+      responses:
+        "200":
+          description: List of competitors
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/CompetitorListResponse"
+
+  /publishers:
+    get:
+      operationId: listPublishers
+      tags: [publishers]
+      summary: List known publishers
+      description: Returns all unique publishers that have mentioned competitors
+      responses:
+        "200":
+          description: List of publishers
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/PublisherListResponse"
+
+  /mentions/recent-activity:
+    get:
+      operationId: getRecentActivity
+      tags: [mentions]
+      summary: Get recent activity feed
+      description: Returns the most recent mentions across all competitors
+      parameters:
+        - name: limit
+          in: query
+          schema:
+            type: integer
+            default: 10
+          description: Number of recent items
+      responses:
+        "200":
+          description: Recent activity
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/MentionListResponse"
+
+  /mentions/refresh-logs:
+    get:
+      operationId: getRefreshLogs
+      tags: [mentions]
+      summary: Get sync history
+      description: Returns the most recent feed refresh log entries
+      parameters:
+        - name: limit
+          in: query
+          schema:
+            type: integer
+            default: 5
+          description: Number of log entries to return (max 20)
+      responses:
+        "200":
+          description: Refresh log entries
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/RefreshLogsResponse"
+
+  /comp-intel:
+    get:
+      operationId: listCompIntelArticles
+      tags: [comp-intel]
+      summary: List competitor blog articles
+      description: Returns articles published on competitor internal blogs
+      parameters:
+        - name: competitor
+          in: query
+          schema:
+            type: string
+          description: Filter by competitor name
+        - name: timeRange
+          in: query
+          schema:
+            type: string
+            enum: [7d, 30d, 90d]
+          description: Time range filter
+        - name: limit
+          in: query
+          schema:
+            type: integer
+            default: 50
+          description: Max results to return
+        - name: offset
+          in: query
+          schema:
+            type: integer
+            default: 0
+          description: Pagination offset
+      responses:
+        "200":
+          description: List of competitor blog articles
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/CompIntelListResponse"
+
+  /comp-intel/stats:
+    get:
+      operationId: getCompIntelStats
+      tags: [comp-intel]
+      summary: Get CompIntel statistics
+      responses:
+        "200":
+          description: CompIntel statistics
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/CompIntelStats"
+
+  /comp-intel/refresh-logs:
+    get:
+      operationId: getCompIntelRefreshLogs
+      tags: [comp-intel]
+      summary: Get CompIntel sync history
+      parameters:
+        - name: limit
+          in: query
+          schema:
+            type: integer
+            default: 5
+      responses:
+        "200":
+          description: Refresh log entries
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/CompIntelRefreshLogsResponse"
+
+  /comp-intel/refresh:
+    post:
+      operationId: refreshCompIntel
+      tags: [comp-intel]
+      summary: Trigger competitor blog sync
+      description: Fetches latest articles from all tracked competitor blogs
+      responses:
+        "202":
+          description: Refresh started
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  status:
+                    type: string
+                required:
+                  - status
+
+  /community/posts:
+    get:
+      operationId: listCommunityPosts
+      tags: [community]
+      summary: List community discussion posts
+      parameters:
+        - name: source
+          in: query
+          schema:
+            type: string
+            enum: [reddit, hackernews, stackoverflow, github]
+          description: Filter by source
+        - name: keyword
+          in: query
+          schema:
+            type: string
+          description: Filter by tracked keyword
+        - name: q
+          in: query
+          schema:
+            type: string
+          description: Search within post titles
+        - name: days
+          in: query
+          schema:
+            type: integer
+            enum: [7, 30, 90]
+            default: 30
+          description: Time range in days
+        - name: sortBy
+          in: query
+          schema:
+            type: string
+            enum: [date, score]
+            default: date
+          description: Sort order
+        - name: limit
+          in: query
+          schema:
+            type: integer
+            default: 50
+        - name: offset
+          in: query
+          schema:
+            type: integer
+            default: 0
+        - name: competitor
+          in: query
+          schema:
+            type: string
+          description: Filter posts that mention this competitor
+      responses:
+        "200":
+          description: List of community posts
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/CommunityListResponse"
+
+  /community/stats:
+    get:
+      operationId: getCommunityStats
+      tags: [community]
+      summary: Get community statistics
+      responses:
+        "200":
+          description: Community statistics
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/CommunityStats"
+
+  /community/keywords:
+    get:
+      operationId: listCommunityKeywords
+      tags: [community]
+      summary: List tracked keywords
+      responses:
+        "200":
+          description: Tracked keywords
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/CommunityKeywordsResponse"
+    post:
+      operationId: addCommunityKeyword
+      tags: [community]
+      summary: Add a tracked keyword
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/AddCommunityKeywordBody"
+      responses:
+        "201":
+          description: Keyword added
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/CommunityKeyword"
+        "400":
+          description: Invalid keyword
+
+  /community/keywords/{id}:
+    delete:
+      operationId: deleteCommunityKeyword
+      tags: [community]
+      summary: Remove a tracked keyword
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        "204":
+          description: Keyword deleted
+
+  /community/search:
+    get:
+      operationId: searchCommunity
+      tags: [community]
+      summary: Live on-demand keyword search
+      description: Searches Reddit and HN live for the given keyword (results not saved to DB)
+      parameters:
+        - name: q
+          in: query
+          required: true
+          schema:
+            type: string
+          description: Keyword to search for
+      responses:
+        "200":
+          description: Live search results
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/CommunityListResponse"
+
+  /community/search/save:
+    post:
+      operationId: saveCommunitySearch
+      tags: [community]
+      summary: Save live search results to database
+      description: Re-fetches results for a keyword and saves qualifying posts (with competitor in title) to the DB
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [q]
+              properties:
+                q:
+                  type: string
+                  description: Keyword to search and save
+      responses:
+        "200":
+          description: Save summary
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/CommunitySearchSaveResponse"
+
+  /community/refresh-logs:
+    get:
+      operationId: getCommunityRefreshLogs
+      tags: [community]
+      summary: Get community sync history
+      parameters:
+        - name: limit
+          in: query
+          schema:
+            type: integer
+            default: 5
+      responses:
+        "200":
+          description: Refresh log entries
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/CommunityRefreshLogsResponse"
+
+  /community/competitor-stats:
+    get:
+      operationId: getCommunityCompetitorStats
+      tags: [community]
+      summary: Get competitor mention counts from community posts
+      parameters:
+        - name: days
+          in: query
+          schema:
+            type: integer
+            enum: [7, 30, 90]
+            default: 30
+          description: Time range in days
+      responses:
+        "200":
+          description: Competitor mention counts
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/CommunityCompetitorStatsResponse"
+
+  /community/refresh:
+    post:
+      operationId: refreshCommunity
+      tags: [community]
+      summary: Trigger community sync
+      description: Fetches latest posts for all tracked keywords
+      responses:
+        "202":
+          description: Refresh started
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  status:
+                    type: string
+                required:
+                  - status
+
+  /pages:
+    get:
+      operationId: listCompetitorPages
+      tags: [pages]
+      summary: List competitor website pages
+      description: Returns pages indexed from competitor sitemaps
+      parameters:
+        - name: competitor
+          in: query
+          schema:
+            type: string
+          description: Filter by competitor name
+        - name: pageType
+          in: query
+          schema:
+            type: string
+            enum: [comparison, migration, product, template, application, agency, affiliate, coupon, legal, blog, pricing, feature, solution, case_study, landing, changelog, docs, partner, company, main, localized, page]
+          description: Filter by page type
+        - name: section
+          in: query
+          schema:
+            type: string
+          description: Filter by section label
+        - name: locale
+          in: query
+          schema:
+            type: string
+          description: Filter by locale code (e.g. ae, de, ch-fr) — first path segment of localized pages
+        - name: q
+          in: query
+          schema:
+            type: string
+          description: Search within URL or title
+        - name: days
+          in: query
+          schema:
+            type: integer
+            enum: [7, 30, 90]
+          description: Filter by last seen within N days
+        - name: newOnly
+          in: query
+          schema:
+            type: boolean
+          description: Only return pages first seen since the most recent sync run
+        - name: recentlyChanged
+          in: query
+          schema:
+            type: boolean
+          description: Only return pages whose lastmod was updated in the last 7 days
+        - name: limit
+          in: query
+          schema:
+            type: integer
+            default: 50
+        - name: offset
+          in: query
+          schema:
+            type: integer
+            default: 0
+      responses:
+        "200":
+          description: List of competitor pages
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/CompetitorPagesListResponse"
+
+  /pages/stats:
+    get:
+      operationId: getCompetitorPagesStats
+      tags: [pages]
+      summary: Get competitor pages statistics
+      responses:
+        "200":
+          description: Pages statistics
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/CompetitorPagesStats"
+
+  /pages/refresh-logs:
+    get:
+      operationId: getCompetitorPagesRefreshLogs
+      tags: [pages]
+      summary: Get pages sync history
+      parameters:
+        - name: limit
+          in: query
+          schema:
+            type: integer
+            default: 5
+      responses:
+        "200":
+          description: Refresh log entries
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/CompetitorPagesRefreshLogsResponse"
+
+  /pages/competitors:
+    get:
+      operationId: listTrackedPageCompetitors
+      tags: [pages]
+      summary: List competitors tracked for pages
+      responses:
+        "200":
+          description: List of tracked competitor names
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/CompetitorPagesCompetitorsResponse"
+
+  /pages/refresh:
+    post:
+      operationId: refreshCompetitorPages
+      tags: [pages]
+      summary: Trigger competitor pages sitemap sync
+      description: Fetches all competitor sitemaps and indexes pages
+      responses:
+        "202":
+          description: Refresh started
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  status:
+                    type: string
+                required:
+                  - status
+
+  /mentions/by-competitor:
+    get:
+      operationId: getMentionsByCompetitor
+      tags: [mentions]
+      summary: Get mention counts grouped by competitor
+      parameters:
+        - name: timeRange
+          in: query
+          schema:
+            type: string
+            enum: [7d, 30d, 90d]
+          description: Time range filter
+      responses:
+        "200":
+          description: Counts grouped by competitor
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/CompetitorMentionCounts"
+
+components:
+  schemas:
+    HealthStatus:
+      type: object
+      properties:
+        status:
+          type: string
+      required:
+        - status
+
+    Mention:
+      type: object
+      properties:
+        id:
+          type: integer
+        title:
+          type: string
+        url:
+          type: string
+        publisher:
+          type: string
+        publisherType:
+          type: string
+          enum: [tech_media, saas_blog, review_site, industry_news, general]
+        publishedAt:
+          type: string
+          format: date-time
+        snippet:
+          type: string
+        competitor:
+          type: string
+        mentionType:
+          type: string
+          enum: [review, comparison, ranking, news, customer_story, sponsored, other]
+        sentiment:
+          type: string
+          enum: [positive, neutral, negative]
+        opportunityInsight:
+          type: string
+        opportunityAngle:
+          type: string
+        outreachTarget:
+          type: string
+          enum: [blog, journalist, affiliate_site, review_site, other]
+        score:
+          type: integer
+          description: Relevance and impact score 0-100
+        status:
+          type: string
+          enum: [unread, read, actioned]
+          description: Workflow status of the mention
+        analyzedAt:
+          type: string
+          format: date-time
+        createdAt:
+          type: string
+          format: date-time
+      required:
+        - id
+        - title
+        - url
+        - publisher
+        - publisherType
+        - publishedAt
+        - snippet
+        - competitor
+        - mentionType
+        - sentiment
+        - opportunityInsight
+        - opportunityAngle
+        - outreachTarget
+        - score
+        - status
+        - createdAt
+
+    MentionListResponse:
+      type: object
+      properties:
+        mentions:
+          type: array
+          items:
+            $ref: "#/components/schemas/Mention"
+        total:
+          type: integer
+      required:
+        - mentions
+        - total
+
+    MentionStats:
+      type: object
+      properties:
+        totalMentions:
+          type: integer
+        byCompetitor:
+          type: array
+          items:
+            type: object
+            properties:
+              competitor:
+                type: string
+              count:
+                type: integer
+            required:
+              - competitor
+              - count
+        byType:
+          type: array
+          items:
+            type: object
+            properties:
+              type:
+                type: string
+              count:
+                type: integer
+            required:
+              - type
+              - count
+        bySentiment:
+          type: array
+          items:
+            type: object
+            properties:
+              sentiment:
+                type: string
+              count:
+                type: integer
+            required:
+              - sentiment
+              - count
+        topPublishers:
+          type: array
+          items:
+            type: object
+            properties:
+              publisher:
+                type: string
+              count:
+                type: integer
+            required:
+              - publisher
+              - count
+        opportunityCount:
+          type: integer
+        lastRefreshedAt:
+          type: string
+          format: date-time
+      required:
+        - totalMentions
+        - byCompetitor
+        - byType
+        - bySentiment
+        - topPublishers
+        - opportunityCount
+
+    UpdateMentionStatusBody:
+      type: object
+      properties:
+        status:
+          type: string
+          enum: [unread, read, actioned]
+      required:
+        - status
+
+    RefreshMentionsBody:
+      type: object
+      properties:
+        competitors:
+          type: array
+          items:
+            type: string
+          description: Optional list of specific competitors to refresh (defaults to all)
+
+    RefreshResult:
+      type: object
+      properties:
+        success:
+          type: boolean
+        fetched:
+          type: integer
+        analyzed:
+          type: integer
+        message:
+          type: string
+      required:
+        - success
+        - fetched
+        - analyzed
+        - message
+
+    Competitor:
+      type: object
+      properties:
+        name:
+          type: string
+        slug:
+          type: string
+        mentionCount:
+          type: integer
+      required:
+        - name
+        - slug
+        - mentionCount
+
+    CompetitorListResponse:
+      type: object
+      properties:
+        competitors:
+          type: array
+          items:
+            $ref: "#/components/schemas/Competitor"
+      required:
+        - competitors
+
+    Publisher:
+      type: object
+      properties:
+        name:
+          type: string
+        type:
+          type: string
+        mentionCount:
+          type: integer
+      required:
+        - name
+        - type
+        - mentionCount
+
+    PublisherListResponse:
+      type: object
+      properties:
+        publishers:
+          type: array
+          items:
+            $ref: "#/components/schemas/Publisher"
+      required:
+        - publishers
+
+    CompetitorCount:
+      type: object
+      properties:
+        competitor:
+          type: string
+        count:
+          type: integer
+      required:
+        - competitor
+        - count
+
+    RefreshLog:
+      type: object
+      properties:
+        id:
+          type: integer
+        startedAt:
+          type: string
+          format: date-time
+        completedAt:
+          type: string
+          format: date-time
+          nullable: true
+        fetched:
+          type: integer
+          nullable: true
+        analyzed:
+          type: integer
+          nullable: true
+        status:
+          type: string
+          enum: [running, completed, failed]
+        message:
+          type: string
+          nullable: true
+      required:
+        - id
+        - startedAt
+        - status
+
+    RefreshLogsResponse:
+      type: object
+      properties:
+        logs:
+          type: array
+          items:
+            $ref: "#/components/schemas/RefreshLog"
+      required:
+        - logs
+
+    CompetitorMentionCounts:
+      type: object
+      properties:
+        counts:
+          type: array
+          items:
+            $ref: "#/components/schemas/CompetitorCount"
+      required:
+        - counts
+
+    CompIntelArticle:
+      type: object
+      properties:
+        id:
+          type: integer
+        competitor:
+          type: string
+        blogName:
+          type: string
+        blogUrl:
+          type: string
+        title:
+          type: string
+        url:
+          type: string
+        publishedAt:
+          type: string
+          format: date-time
+        snippet:
+          type: string
+        createdAt:
+          type: string
+          format: date-time
+      required:
+        - id
+        - competitor
+        - blogName
+        - blogUrl
+        - title
+        - url
+        - publishedAt
+        - snippet
+        - createdAt
+
+    CompIntelListResponse:
+      type: object
+      properties:
+        articles:
+          type: array
+          items:
+            $ref: "#/components/schemas/CompIntelArticle"
+        total:
+          type: integer
+      required:
+        - articles
+        - total
+
+    CompIntelStats:
+      type: object
+      properties:
+        byCompetitor:
+          type: array
+          items:
+            type: object
+            properties:
+              competitor:
+                type: string
+              count:
+                type: integer
+            required:
+              - competitor
+              - count
+        lastRefreshedAt:
+          type: string
+          format: date-time
+          nullable: true
+        feeds:
+          type: integer
+      required:
+        - byCompetitor
+        - feeds
+
+    CompIntelRefreshLog:
+      type: object
+      properties:
+        id:
+          type: integer
+        startedAt:
+          type: string
+          format: date-time
+        completedAt:
+          type: string
+          format: date-time
+          nullable: true
+        fetched:
+          type: integer
+          nullable: true
+        status:
+          type: string
+          enum: [running, completed, failed]
+        message:
+          type: string
+          nullable: true
+      required:
+        - id
+        - startedAt
+        - status
+
+    CompIntelRefreshLogsResponse:
+      type: object
+      properties:
+        logs:
+          type: array
+          items:
+            $ref: "#/components/schemas/CompIntelRefreshLog"
+      required:
+        - logs
+
+    CommunityPost:
+      type: object
+      properties:
+        id:
+          type: integer
+        source:
+          type: string
+          enum: [reddit, hackernews, stackoverflow, github]
+        subreddit:
+          type: string
+          nullable: true
+        title:
+          type: string
+        url:
+          type: string
+        snippet:
+          type: string
+        author:
+          type: string
+          nullable: true
+        keyword:
+          type: string
+        matchedKeywords:
+          type: array
+          items:
+            type: string
+        score:
+          type: integer
+          description: Upvote/points count from source
+        postedAt:
+          type: string
+          format: date-time
+        fetchedAt:
+          type: string
+          format: date-time
+        opportunityType:
+          type: string
+          enum: [advice_seeking, comparison, complaint, recommendation, news, general]
+          nullable: true
+        opportunityScore:
+          type: integer
+          nullable: true
+          description: AI-assigned priority score 1-10
+        opportunitySummary:
+          type: string
+          nullable: true
+          description: AI-generated one-sentence opportunity note
+        detectedCompetitors:
+          type: array
+          items:
+            type: string
+          description: Competitor names detected in title+snippet
+      required:
+        - id
+        - source
+        - title
+        - url
+        - snippet
+        - keyword
+        - matchedKeywords
+        - score
+        - detectedCompetitors
+        - postedAt
+        - fetchedAt
+
+    CommunityListResponse:
+      type: object
+      properties:
+        posts:
+          type: array
+          items:
+            $ref: "#/components/schemas/CommunityPost"
+        total:
+          type: integer
+      required:
+        - posts
+        - total
+
+    CommunityKeyword:
+      type: object
+      properties:
+        id:
+          type: integer
+        keyword:
+          type: string
+        active:
+          type: boolean
+        createdAt:
+          type: string
+          format: date-time
+      required:
+        - id
+        - keyword
+        - active
+        - createdAt
+
+    CommunityKeywordsResponse:
+      type: object
+      properties:
+        keywords:
+          type: array
+          items:
+            $ref: "#/components/schemas/CommunityKeyword"
+      required:
+        - keywords
+
+    AddCommunityKeywordBody:
+      type: object
+      properties:
+        keyword:
+          type: string
+      required:
+        - keyword
+
+    CommunityStats:
+      type: object
+      properties:
+        bySource:
+          type: array
+          items:
+            type: object
+            properties:
+              source:
+                type: string
+              count:
+                type: integer
+            required:
+              - source
+              - count
+        lastRefreshedAt:
+          type: string
+          format: date-time
+          nullable: true
+        trackedKeywords:
+          type: integer
+      required:
+        - bySource
+        - trackedKeywords
+
+    CommunityRefreshLog:
+      type: object
+      properties:
+        id:
+          type: integer
+        startedAt:
+          type: string
+          format: date-time
+        completedAt:
+          type: string
+          format: date-time
+          nullable: true
+        fetched:
+          type: integer
+          nullable: true
+        status:
+          type: string
+          enum: [running, completed, failed]
+        message:
+          type: string
+          nullable: true
+      required:
+        - id
+        - startedAt
+        - status
+
+    CommunityRefreshLogsResponse:
+      type: object
+      properties:
+        logs:
+          type: array
+          items:
+            $ref: "#/components/schemas/CommunityRefreshLog"
+      required:
+        - logs
+
+    CommunityCompetitorStatsResponse:
+      type: object
+      properties:
+        competitors:
+          type: array
+          items:
+            type: object
+            properties:
+              name:
+                type: string
+              count:
+                type: integer
+            required:
+              - name
+              - count
+      required:
+        - competitors
+
+    CommunitySearchSaveResponse:
+      type: object
+      properties:
+        saved:
+          type: integer
+          description: Number of posts saved to the database
+        skipped:
+          type: integer
+          description: Number of posts skipped (no competitor in title)
+      required:
+        - saved
+        - skipped
+
+    CompetitorPage:
+      type: object
+      properties:
+        id:
+          type: integer
+        competitor:
+          type: string
+        url:
+          type: string
+        title:
+          type: string
+        pageType:
+          type: string
+          enum: [comparison, migration, product, template, application, agency, affiliate, coupon, legal, blog, pricing, feature, solution, case_study, landing, changelog, docs, partner, company, main, localized, page]
+        section:
+          type: string
+        lastmod:
+          type: string
+          format: date-time
+          nullable: true
+        firstSeenAt:
+          type: string
+          format: date-time
+        lastSeenAt:
+          type: string
+          format: date-time
+        isNew:
+          type: boolean
+          description: True if this page was first seen during the most recent sync run
+      required:
+        - id
+        - competitor
+        - url
+        - title
+        - pageType
+        - section
+        - firstSeenAt
+        - lastSeenAt
+        - isNew
+
+    CompetitorPagesListResponse:
+      type: object
+      properties:
+        pages:
+          type: array
+          items:
+            $ref: "#/components/schemas/CompetitorPage"
+        total:
+          type: integer
+      required:
+        - pages
+        - total
+
+    CompetitorPagesStats:
+      type: object
+      properties:
+        byCompetitor:
+          type: array
+          items:
+            type: object
+            properties:
+              competitor:
+                type: string
+              count:
+                type: integer
+            required:
+              - competitor
+              - count
+        byPageType:
+          type: array
+          items:
+            type: object
+            properties:
+              pageType:
+                type: string
+              count:
+                type: integer
+            required:
+              - pageType
+              - count
+        localeStats:
+          type: array
+          items:
+            type: object
+            properties:
+              locale:
+                type: string
+              count:
+                type: integer
+            required:
+              - locale
+              - count
+        blockedCompetitors:
+          type: array
+          items:
+            type: string
+          description: Competitors whose sitemaps were blocked by bot protection on the last sync
+        lastRefreshedAt:
+          type: string
+          format: date-time
+          nullable: true
+        competitors:
+          type: integer
+        newCount:
+          type: integer
+          nullable: true
+          description: Number of pages first seen in the most recent sync run
+      required:
+        - byCompetitor
+        - byPageType
+        - localeStats
+        - blockedCompetitors
+        - competitors
+
+    CompetitorPagesRefreshLog:
+      type: object
+      properties:
+        id:
+          type: integer
+        startedAt:
+          type: string
+          format: date-time
+        completedAt:
+          type: string
+          format: date-time
+          nullable: true
+        fetched:
+          type: string
+          nullable: true
+        status:
+          type: string
+          enum: [running, completed, failed]
+        message:
+          type: string
+          nullable: true
+      required:
+        - id
+        - startedAt
+        - status
+
+    CompetitorPagesRefreshLogsResponse:
+      type: object
+      properties:
+        logs:
+          type: array
+          items:
+            $ref: "#/components/schemas/CompetitorPagesRefreshLog"
+      required:
+        - logs
+
+    CompetitorPagesCompetitorsResponse:
+      type: object
+      properties:
+        competitors:
+          type: array
+          items:
+            type: string
+      required:
+        - competitors
